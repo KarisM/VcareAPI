@@ -50,7 +50,7 @@ def querySummaryDaily(carId):
 
     for sensorId in sensorIdList:
         if query_result[sensorId] == []:
-            result = []
+            result = {}
             return result
         
     result={}
@@ -137,7 +137,7 @@ def querySummaryWeekly(carId):
 
     for sensorId in sensorIdList:
         if query_result[sensorId] == []:
-            result = []
+            result = {}
             return result
 
     result={}
