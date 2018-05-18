@@ -20,7 +20,7 @@ var getpromotion = require('./routes/getpromotion');
 var logIn = require('./routes/logIn');
 var register = require('./routes/register');
 var check_status = require('./routes/check_status');
-
+var getChartData = require('./routes/getChartData');
 
 var app = express();
 
@@ -57,6 +57,7 @@ app.use('/getpromotion',getpromotion)
 app.use('/logIn',logIn)
 app.use('/register',register)
 app.use('/check_status',check_status)
+app.use('/getChartData',getChartData)
 
 /*
 // catch 404 and forward to error handler

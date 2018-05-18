@@ -24,7 +24,7 @@ import sys
 #                        db='VCareDB')
 #    cur = conn.cursor()
 #    #get data mileage from database
-#    sql = "SELECT time, value value FROM carSensor WHERE carId = " + str(carId) + " AND sensorId = " + str(sensorId) + " ORDER BY id DESC LIMIT 1"
+#    sql = "SELECT time, value FROM carSensor WHERE carId = " + str(carId) + " AND sensorId = " + str(sensorId) + " ORDER BY id DESC LIMIT 1"
 #    cur.execute(sql)
 #    #convert object to data
 #    result = []

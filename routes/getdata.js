@@ -6,7 +6,7 @@ var options = {
   mode: 'json',
   pythonPath: '/usr/bin/python',
   pythonOptions: ['-u'],
-  scriptPath: '/home/ubuntu/www/VcareAPI/routes',
+  scriptPath: '/home/ubuntu/www/VcareAPI/routes/analyze',
   //format ['carId','sensorId']
   //args: ['1','13','05']
   args: ['1']
@@ -53,14 +53,14 @@ const insert_carSensor = (req) => {
 
 router_getdata.post('/', async function(req,res,next){
     console.log("Start getdata")
-    // console.log("receive data",data)
-    // var pyshell = new PythonShell('analyze.py',options);
-    // console.log(req.body);
+    console.log("receive data",data)
+    // var pyshell = new PythonShell('sensor_status.py',options);
+    console.log(req.body);
     await insert_carGPS(req);
     await insert_carSensor(req);
 
     //Python part
-    var pyshell = new PythonShell('analyze.py',options);
+    var pyshell = new PythonShell('sensor_status.py',options);
     var data;
     console.log("Start python")
     const my_python = (fn) => {

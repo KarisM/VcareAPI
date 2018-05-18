@@ -8,10 +8,10 @@ import pymysql
 from sklearn.cluster import KMeans
 import pprint
 import math
+import datetime
 
 columns=['id', 'dateTime', 'carId', 'sensorId', 'sensorName', 'value']
 df_sensor = pd.read_csv("./Sensor_data3.csv", skiprows=1, names = ['dateTime','carId','sensorId','sensorName','value'])
-df_position = pd.read_csv('GPS_data3.csv',skiprows=1, names = ['dateTime','carId','DTC','latitude','longtitude','distance'])
 df_sensor = df_sensor.iloc[230000:]
 sensor_dict = df_sensor[['sensorId','sensorName']][0:36]
 reshape_sensor = {}
@@ -33,14 +33,16 @@ while idx < df_sensor.shape[0]-1:
 print("************************** START creating sensorId list")
 #Create Sensor ID list to use as ref
 sensorId_list = []
-for idx in range(int(df_sensor.shape[0]*0.001)):
+for idx in range(int(df_sensor.shape[0])):
     if df_sensor.iloc[idx].sensorId not in sensorId_list:
         sensorId_list.append(df_sensor.iloc[idx].sensorId)
 
 print("************************** START finaling dict")   
 sensor_value_dict = {}
+new_sensor_value_dict = {}
 for sensorId in sensorId_list:
-    sensor_value_dict[sensorId] = []    
+    sensor_value_dict[sensorId] = []
+    new_sensor_value_dict[sensorId] = []
     
 index_time = list(reshape_sensor.keys())
 for date in index_time:
@@ -50,55 +52,95 @@ for date in index_time:
         else:
             sensor_value_dict[sensorId].append("None")
 
+
 sensor_value_dict['dateTime'] = index_time
+new_sensor_value_dict['dateTime'] = []
+
+print("************************** START Adding missing time")  
+for idx in range(len(sensor_value_dict['dateTime'])):
+    
+    if idx != 0 and sensor_value_dict['dateTime'][idx] - sensor_value_dict['dateTime'][idx-1] > datetime.timedelta(0, 10):
+        while sensor_value_dict['dateTime'][idx] - new_sensor_value_dict['dateTime'][-1] > datetime.timedelta(0, 10):
+            print(new_sensor_value_dict['dateTime'][-1])
+    #        print(sensor_value_dict['dateTime'][idx-1], sensor_value_dict['dateTime'][idx])
+            for key in sensor_value_dict.keys():
+                if key != 'dateTime':
+                    new_sensor_value_dict[key].append(0)
+                else:
+                    new_sensor_value_dict[key].append(new_sensor_value_dict['dateTime'][-1].replace(seconds=+5))
+
+    elif sensor_value_dict['dateTime'][idx] - sensor_value_dict['dateTime'][idx-1] <= datetime.timedelta(0, 10):
+        for key in sensor_value_dict.keys():
+            new_sensor_value_dict[key].append(sensor_value_dict[key][idx])
+    else:
+        for key in sensor_value_dict.keys():
+            new_sensor_value_dict[key].append(sensor_value_dict[key][0])  
+        
+        
+        
+sensor_value_dict = new_sensor_value_dict
 df_sensor_value = pd.DataFrame(sensor_value_dict).set_index('dateTime')
 
-start_date = "2018-05-02 09:09"
-end_date = "2018-05-02 09:21"
+start_date = "2018-05-05 14:00"
+end_date = "2018-05-05 23:59"
 print("************************** Filtering Time")
 start_date = arrow.get(start_date).replace(tzinfo=dateutil.tz.gettz(tz))
 end_date = arrow.get(end_date).replace(tzinfo=dateutil.tz.gettz(tz))
 df_sensor_value = df_sensor_value.drop(df_sensor_value[df_sensor_value.index < start_date].index)
 df_sensor_value = df_sensor_value.drop(df_sensor_value[df_sensor_value.index > end_date].index)
 
+
 print("************************** Filtering Column")
-usable_sensorId = [4, 5, 12, 13, 47, 49, 66, 68]
+usable_sensorId = [4, 5, 12, 13, 47, 49, 66]
 df_sensor_value = df_sensor_value.loc[:,usable_sensorId]
 
+df_position = pd.read_csv('GPS_data3.csv',skiprows=1, names = ['dateTime','carId','DTC','latitude','longtitude','distance'])
 
 print("************************** Changing time in df_position to arrow and filter_time")
 for idx in range(df_position.shape[0]):
-    print("--- Convering df_position.dateTime to arrow",idx)
+    print("--- Converting df_position.dateTime to arrow",idx)
     df_position.set_value(idx, 'dateTime', arrow.get(df_position.iloc[idx]['dateTime']).replace(tzinfo=dateutil.tz.gettz(tz)))
 
 df_position = df_position.set_index('dateTime')
-
-start_date = arrow.get(start_date).replace(tzinfo=dateutil.tz.gettz(tz))
-end_date = arrow.get(end_date).replace(tzinfo=dateutil.tz.gettz(tz))
 df_position = df_position.drop(df_position[df_position.index < start_date].index)
 df_position = df_position.drop(df_position[df_position.index > end_date].index)
-    
+
+print("************************** Deleting duplicate datetime")  
+delete_idx = []  
+for idx in range(df_position.shape[0]):
+    if idx != 0 and df_position.index[idx] == df_position.index[idx-1]:
+        print("-"*50,idx,"of",df_position.shape[0])
+        print(df_position.iloc[idx])      
+        delete_idx.append(idx)
+df_position = df_position.drop(df_position.iloc[delete_idx].index)  
+
+  
+
 print("************************** Merging DataFrames")    
-for idx in range(df_sensor_value.shape[0]):
+for idx in range(df_position.shape[0]):
     if df_sensor_value.index[idx] in df_position.index:
+        print(df_sensor_value.index[idx],df_position.index[idx],df_sensor_value.index[idx] in df_position.index)
+        print(type(df_position.loc[df_sensor_value.index[idx]]))
+        print("-"*50)
         df_sensor_value.set_value(df_sensor_value.index[idx], 'latitude', df_position.loc[df_sensor_value.index[idx]]['latitude'])
         df_sensor_value.set_value(df_sensor_value.index[idx], 'longtitude', df_position.loc[df_sensor_value.index[idx]]['longtitude'])
         df_sensor_value.set_value(df_sensor_value.index[idx], 'distance', df_position.loc[df_sensor_value.index[idx]]['distance'])
-    
+
+
 df_car = df_sensor_value.copy() 
-usable_sensorName = ['load', 'temp', 'rpm', 'speed', 'fuel', 'mileage', 'voltage', 'fuelair']
+usable_sensorName = ['load', 'temp', 'rpm', 'speed', 'fuel', 'mileage', 'voltage']
 
 columns = {}
 for idx in range(len(usable_sensorId)):
     columns[usable_sensorId[idx]] = usable_sensorName[idx]
 df_car = df_car.rename(columns=columns)
 
-#for col in df_car.keys():
-#    for idx in range(df_car.shape[0]):
-#        if df_car.loc[:,col][idx] != 'None':
-#            df_car.set_value(df_car.index[idx], col, float(df_car.loc[:,col][idx]))
-#        else:
-#            df_car.set_value(df_car.index[idx], col, -1.0)
+for col in df_car.keys():
+    for idx in range(df_car.shape[0]):
+        if df_car.loc[:,col][idx] != 'None':
+            df_car.set_value(df_car.index[idx], col, float(df_car.loc[:,col][idx]))
+        else:
+            df_car.set_value(df_car.index[idx], col, -1.0)
 
 
 del df_sensor

@@ -18,24 +18,28 @@ var connection = mysql.createConnection({
     database : 'VCareDB',
     multipleStatements: true
 });
-/*const queryData = (queryCarSensor,queryCardetail) =>{
-    //console.log(queryCarSensor+queryCardetail);
-    connection.query(queryCarSensor+queryCardetail, function (err, results) {
-        try 
-        {
-            console.log(results)
-        }
-        catch(err) 
-        {
-           console.log(err);
-        }
-      });
-}*/
+
 router_logIn.post('/', function(req, res, next) {
     console.log(req.body);
     var temp = queryUserData+'\''+req.body.username+'\' AND password =\''+req.body.password+'\';';
+    connection.query(temp, function (err, result, fields) {    
+        if (err) throw err;
+        if(result != "")
+        {
+            var insert = "INSERT INTO sessions VALUES (\""+req.sessionID+"\",\""+req.session.cookie.expires+"\","+result[0].userId+")"
+            connection.query(insert, function(err,result,field){
+             console.log("Login"+req.sessionID)
+             })
+            res.send("complete");          
+        }
+        else
+        {
+           console.log("id or password not found");
+           res.send("not found");
+        }
+      });
     //console.log(temp);
-    connection.query(temp+queryCarSensor+queryCardetail, function (err, result, fields) {
+    /*connection.query(temp+queryCarSensor+queryCardetail, function (err, result, fields) {
     temp="";
     //console.log(result);
     console.log(result);      
@@ -68,7 +72,7 @@ router_logIn.post('/', function(req, res, next) {
        console.log("id or password not found");
        res.send("not found");
     }
-  });
+  });*/
 });
 
 module.exports = router_logIn;
